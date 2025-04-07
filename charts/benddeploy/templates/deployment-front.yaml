@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: benddeploy-frontend
+  labels:
+    app: benddeploy-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: benddeploy-frontend
+  template:
+    metadata:
+      labels:
+        app: benddeploy-frontend
+    spec:
+      containers:
+        - name: benddeploy-frontend
+          image: {{ .Values.image }}
+          command: [ "nginx" ]
+          args: [ "-g", "daemon off;" ]
+          resources:
+            requests:
+              memory: "20Mi"
+              cpu: "10m"
+            limits:
+              memory: "50Mi"
+          ports:
+            - containerPort: 80
+              name: http

@@ -1,0 +1,70 @@
+{{- if .Values.ingress.k3d.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: benddeploy-ingress
+spec:
+  rules:
+    - host: {{ .Values.ingress.k3d.host }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: benddeploy-service
+                port:
+                  number: 8080
+{{- end }}
+
+{{- if .Values.ingress.dev.enabled }}
+# used for frontend dev
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.ingress.dev.host }}
+    external-dns.alpha.kubernetes.io/ingress-hostname-source: annotation-only
+    external-dns.alpha.kubernetes.io/ttl: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10240m"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600s"
+  name: benddeploy-ingress-dev
+spec:
+  ingressClassName: external
+  rules:
+    - host: {{ .Values.ingress.dev.host }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 8080
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: benddeploy-service
+                port:
+                  number: 8080
+          - path: /v1
+            pathType: Prefix
+            backend:
+              service:
+                name: benddeploy-service
+                port:
+                  number: 8080
+  tls:
+    # specifying a host in the TLS section will tell cert-manager what
+    # DNS SANs should be on the created certificate.
+    - hosts:
+        - {{ .Values.ingress.dev.host }}
+      # cert-manager will create this secret
+      secretName: {{ .Values.ingress.dev.certSecret }}
+{{- end }}

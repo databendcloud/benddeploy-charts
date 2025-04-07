@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-agent-config
+  labels:
+    {{- include "common.labels" . | nindent 4 }}
+data:
+  agent.yaml: |
+    data_dir: /vector-data-dir
+    sources:
+      kubernetes_logs:
+        type: kubernetes_logs
+        glob_minimum_cooldown_ms: 1000
+        self_node_name: "${VECTOR_SELF_NODE_NAME}"
+      internal_metrics:
+        type: internal_metrics
+
+    transforms:
+      filter_warehouse_system_logs:
+        type: remap
+        inputs:
+          - kubernetes_logs
+        source: |-
+          if (.kubernetes.container_name != "databend-query") {
+            abort
+          }
+          tenant = .kubernetes.pod_annotations."databend.io/tenant"
+          warehouse = .kubernetes.pod_annotations."databend.io/warehouse"
+          warehouse_seq = parse_regex!(.kubernetes.pod_name, r'^.*-(?P<seq>\d+)$').seq
+          pod_name = .kubernetes.pod_name
+          del(.kubernetes)
+          inner, err = parse_json(.message)
+          if (err == null) {
+            .message = inner
+          } else {
+            abort
+          }
+          .tenant = tenant
+          .warehouse = warehouse
+          .pod_name = pod_name
+          .warehouse_seq = warehouse_seq
+          .category = "query"
+      export_log_qps:
+        type: log_to_metric
+        inputs:
+          - kubernetes_logs
+        metrics:
+          - name: pod_log_count
+            type: counter
+            field: message
+            tags:
+              container_name: "{{ .kubernetes.container_name }}"
+              pod_namespace: "{{ .kubernetes.pod_namespace }}"
+              pod_name: "{{ .kubernetes.pod_name }}"
+
+    sinks:
+      prom_exporter:
+        type: prometheus_exporter
+        inputs:
+          - internal_metrics
+          - export_log_qps
+        address: 0.0.0.0:9090
+
+      # S3 sink
+      s3_logs:
+        type: aws_s3
+        inputs:
+          - filter_warehouse_system_logs
+        endpoint: {{ .Values.warehouseLogCollector.s3.endpoint }}
+        bucket: {{ .Values.warehouseLogCollector.s3.bucket }}
+        key_prefix: "logs/{{ `{{ tenant }}` }}/warehouse_system/"
+        compression: gzip
+        encoding:
+          codec: native_json
+
+        auth:
+          access_key_id: {{ .Values.warehouseLogCollector.s3.auth.accessKeyId }}
+          secret_access_key: {{ .Values.warehouseLogCollector.s3.auth.secretAccessKey }}
+
+        region: {{ .Values.warehouseLogCollector.s3.region }}
+
+        batch:
+          max_bytes: {{ .Values.warehouseLogCollector.s3.batch.maxBytes }}
+          timeout_secs: {{ .Values.warehouseLogCollector.s3.batch.timeoutSecs }}
+          max_events: 9000
+
+        filename_time_format: "%Y%m%d-%H%M%S"
+        filename_append_uuid: true 

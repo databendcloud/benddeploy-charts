@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: benddeploy
+  labels:
+    app: benddeploy
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: benddeploy
+  template:
+    metadata:
+      labels:
+        app: benddeploy
+    spec:
+      serviceAccountName: benddeploy
+      containers:
+        - name: app
+          image: {{ .Values.image }}
+          command: ['/app/main']
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: BDEPLOY_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: BDEPLOY_IMAGE_REGISTRY
+              value: "{{ .Values.envs.BDEPLOY_IMAGE_REGISTRY }}"
+            - name: BDEPLOY_LOKI_HOST
+              value: "{{ .Values.envs.BDEPLOY_LOKI_HOST }}"
+            - name: BDEPLOY_LOG_COLLECTOR_ENDPOINT
+              value: "{{ .Values.envs.BDEPLOY_LOG_COLLECTOR_ENDPOINT }}"
+            - name: BDEPLOY_PROM_ENDPOINT
+              value: "{{ .Values.envs.BDEPLOY_PROM_ENDPOINT }}"
+            - name: BDEPLOY_GRAFANA_ENDPOINT
+              value: "{{ .Values.envs.BDEPLOY_GRAFANA_ENDPOINT }}"
+            - name: BDEPLOY_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: SecretKey

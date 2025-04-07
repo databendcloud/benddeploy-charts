@@ -1,0 +1,10 @@
+{{- if .Values.warehouseLogAggregator.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: warehouse-log-aggregator-config
+data:
+  config.yaml: |
+    {{- include "common.warehouseLogAggregatorConfig" . | nindent 4 }}
+{{- end }}

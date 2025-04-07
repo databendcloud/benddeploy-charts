@@ -1,0 +1,33 @@
+image:
+  repository: datafusecloud/benddeploy
+  tag: ""
+
+frontImage:
+  repository: datafusecloud/benddeploy-frontend
+  tag: ""
+replicaCount: 1
+
+ingress:
+  k3d:
+    host: benddeploy.ingress
+    enabled: false
+  dev:
+    enabled: true
+    certSecret: benddeploy-crt
+    host: benddeploy-dev.datafusecloud.com
+
+postgres:
+  enabled: true
+
+envs:
+  BDEPLOY_IMAGE_REGISTRY: ''
+  BDEPLOY_PROM_ENDPOINT: 'thanos-query.monitoring.svc.cluster.local:9090'
+  BDEPLOY_LOG_COLLECTOR_ENDPOINT: "http://warehouse-log-collector.logging.svc.cluster.local:4318"
+  BDEPLOY_GRAFANA_ENDPOINT: "http://grafana.monitoring.svc.cluster.local:80"
+
+resources:
+  requests:
+    memory: "100Mi"
+    cpu: "100m"
+  limits:
+    memory: "1000Mi"

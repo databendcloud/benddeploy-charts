@@ -1,0 +1,177 @@
+global:
+  dnsService: "coredns"
+cluster:
+  platform: "default-fujian"
+# https://github.com/vectordotdev/helm-charts/tree/develop/charts/vector
+vector:
+  enabled: true
+  nameOverride: vector
+  fullnameOverride: vector
+  image:
+    repository: timberio/vector
+    tag: 0.38.0-debian
+  role: Agent
+  args:
+    - --config-dir
+    - "/etc/vector/"
+    - --require-healthy
+    - "true"
+  service:
+    enabled: false
+    ports:
+      - name: prom-exporter
+        port: 9090
+        targetPort: 9090
+        protocol: TCP
+  existingConfigMaps:
+    - vector-config
+  dataDir: /vector-data-dir
+  podPriorityClassName: system-node-critical
+  podMonitor:
+    enabled: true
+  containerPorts:
+    - name: prom-exporter
+      containerPort: 9090
+      protocol: TCP
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      memory: 1Gi
+  tolerations:
+    - operator: Exists
+      effect: NoSchedule
+
+grafana:
+  enabled: false
+  sidecar:
+    datasources:
+      label: ""
+      labelValue: ""
+      enabled: false
+      maxLines: 1000
+  image:
+    tag: 10.3.3
+
+prometheus:
+  enabled: false
+  isDefault: false
+  url: http://{{ include "prometheus.fullname" .}}:{{ .Values.prometheus.server.service.servicePort }}{{ .Values.prometheus.server.prefixURL }}
+  datasource:
+    jsonData: "{}"
+
+warehouseLogCollector:
+  enabled: true
+  replicas: 1
+  nameOverride: warehouse-log-collector
+  fullnameOverride: warehouse-log-collector
+  s3:
+    endpoint: "S3 endpoint"
+    bucket: "s3.bucket"
+    region: "us-east-1"
+    auth:
+      accessKeyId: "access_key_id"
+      secretAccessKey: "secret_key"
+    batch:
+      maxBytes: 10485760  # 10MB
+      timeoutSecs: 60    # 1min
+  image:
+    repository: timberio/vector
+    tag: 0.38.0-debian
+  args:
+    - --config-dir
+    - "/etc/vector/"
+    - --require-healthy
+    - "true"
+  service:
+    enabled: true
+    ports:
+      - name: prom-exporter
+        port: 9090
+        targetPort: 9090
+        protocol: TCP
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
+  existingConfigMaps:
+    - warehouse-log-collector-config
+  dataDir: /vector-data-dir
+  persistence:
+    enabled: false
+    size: 20Gi
+  containerPorts:
+    - name: prom-exporter
+      containerPort: 9090
+      protocol: TCP
+    - name: otlp-grpc
+      containerPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      containerPort: 4318
+      protocol: TCP
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      memory: 500Mi
+warehouseLogAggregator:
+  enabled: true
+  replicas: 1
+  nameOverride: warehouse-log-aggregator
+  fullnameOverride: warehouse-log-aggregator
+  image:
+    repository: timberio/vector
+    tag: 0.38.0-debian
+  args:
+    - --config-dir
+    - "/etc/vector/"
+    - --require-healthy
+    - "true"
+  service:
+    enabled: true
+    ports:
+      - name: prom-exporter
+        port: 9090
+        targetPort: 9090
+        protocol: TCP
+      - name: vector
+        port: 6000
+        targetPort: 6000
+        protocol: TCP
+  existingConfigMaps:
+    - warehouse-log-aggregator-config
+  dataDir: /vector-data-dir
+  secrets:
+    generic:
+      QUERY_LOG_ES_ENDPOINT: "http://elasticsearch.es.svc.cluster.local:9200"
+      QUERY_LOG_ES_USER: ""
+      QUERY_LOG_ES_PASSWORD: ""
+  persistence:
+    enabled: false
+    size: 20Gi
+  envFrom:
+    - secretRef:
+        name: warehouse-log-aggregator
+  containerPorts:
+    - name: prom-exporter
+      containerPort: 9090
+      protocol: TCP
+    - name: otlp-grpc
+      containerPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      containerPort: 4318
+      protocol: TCP
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      memory: 500Mi

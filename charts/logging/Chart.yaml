@@ -1,0 +1,28 @@
+apiVersion: v2
+name: logging
+description: A Helm chart for logging system
+
+maintainers:
+- name: hantmac
+  email: hanshanjie@datafuselabs.com
+
+type: application
+
+version: 0.1.0
+appVersion: 0.1.0
+
+dependencies:
+- name: vector
+  version: "0.33.0"
+  repository: https://helm.vector.dev
+  condition: vector.enabled
+- name: vector
+  version: "0.33.0"
+  repository: https://helm.vector.dev
+  condition: warehouseLogCollector.enabled
+  alias: warehouseLogCollector
+- name: vector
+  version: "0.33.0"
+  repository: https://helm.vector.dev
+  condition: warehouseLogAggregator.enabled
+  alias: warehouseLogAggregator

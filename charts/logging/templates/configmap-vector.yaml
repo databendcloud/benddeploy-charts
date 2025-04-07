@@ -1,0 +1,9 @@
+{{- if .Values.vector.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vector-config
+data:
+  {{- (.Files.Glob "configs/vector/**.yaml").AsConfig | nindent 2 }}
+{{- end }}

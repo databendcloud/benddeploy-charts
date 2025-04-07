@@ -1,0 +1,10 @@
+{{- if .Values.warehouseLogCollector.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: warehouse-log-collector-config
+data:
+  config.yaml: |
+    {{- include "common.warehouseLogCollectorConfig" . | nindent 4 }}
+{{- end }}
