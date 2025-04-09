@@ -1,9 +1,9 @@
 image:
-  repository: datafusecloud/benddeploy
+  repository: public.ecr.aws/databendlabs/benddeploy:latest
   tag: ""
 
 frontImage:
-  repository: datafusecloud/benddeploy-frontend
+  repository: public.ecr.aws/databendlabs/benddeploy:latest
   tag: ""
 replicaCount: 1
 
