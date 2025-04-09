@@ -9,7 +9,7 @@ Helm v3+
 
 To install the chart with release name `benddeploy`:
 ```
-helm install benddeploy ./benddeploy --namespace benddeploy --create-namespace
+helm install benddeploy ./benddeploy --namespace benddeploy --create-namespace --set image=public.ecr.aws/databendlabs/benddeploy:latest
 ```
 
 Note that for a production cluster, you will likely want to override the following parameters in configmap-benddeploy.yaml with your own values.
