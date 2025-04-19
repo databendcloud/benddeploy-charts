@@ -8,7 +8,10 @@ data:
     {
       "env": "test",
       "namespace": "benddeploy",
-      "imageRegistry": "",
+      "imageRegistry": "registry.databend.local",
+      "registryUsername": "",
+      "registryPassword": "",
+      "repoNamespace": "datafuselabs",
       "secretKey": "",
       "lokiHost": "",
       "grafanaEndpoint": "http://grafana.monitoring.svc.cluster.local:80",
