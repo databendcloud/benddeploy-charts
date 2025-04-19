@@ -1,0 +1,90 @@
+data_dir: /vector-data-dir
+sources:
+  kubernetes_logs:
+    type: kubernetes_logs
+    glob_minimum_cooldown_ms: 1000
+    self_node_name: "${VECTOR_SELF_NODE_NAME}"
+  internal_metrics:
+    type: internal_metrics
+
+transforms:
+  filter_warehouse_system_logs:
+    type: remap
+    inputs:
+      - kubernetes_logs
+    source: |-
+      if (.kubernetes.container_name != "databend-query") {
+        abort
+      }
+      # 保存 kubernetes 相关信息
+      tenant = .kubernetes.pod_annotations."databend.io/tenant"
+      warehouse = .kubernetes.pod_annotations."databend.io/warehouse"
+      pod_name = .kubernetes.pod_name
+      del(.kubernetes)
+
+      # 解析外层 JSON
+      inner, err = parse_json(.message)
+      if (err == null) {
+        # 重构日志格式
+        .message = inner
+      } else {
+        abort
+      }
+
+      # 添加额外信息
+      .tenant = tenant
+      .warehouse = warehouse
+      .pod_name = pod_name
+      .category = "query"
+  export_log_qps:
+    type: log_to_metric
+    inputs:
+      - kubernetes_logs
+    metrics:
+      - name: pod_log_count
+        type: counter
+        field: message
+        tags:
+          container_name: "{{ .kubernetes.container_name }}"
+          pod_namespace: "{{ .kubernetes.pod_namespace }}"
+          pod_name: "{{ .kubernetes.pod_name }}"
+
+sinks:
+  prom_exporter:
+    type: prometheus_exporter
+    inputs:
+      - internal_metrics
+      - export_log_qps
+    address: 0.0.0.0:9090
+
+  # S3 sink
+  s3_logs:
+    type: aws_s3
+    inputs:
+#      - filter_kubernetes_logs
+      - filter_warehouse_system_logs
+    endpoint: "http://testminio.benddeploy.svc:9000"
+    bucket: "mybucket"
+    key_prefix: "logs/{{ tenant }}/system/"
+    compression: gzip
+    encoding:
+      codec: native_json
+
+    auth:
+       access_key_id: "rootuser"
+       secret_access_key: "rootpass123"
+
+    region: "us-east-1"  # example: us-east-1
+
+    batch:
+      max_bytes: 10485760  # 10MB
+      timeout_secs: 60    # 5min
+      max_events: 9000
+
+#    buffer:
+#      type: disk
+#      max_size: 536870912  # 512MB
+#      when_full: block
+
+    filename_time_format: "%Y%m%d-%H%M%S"
+    filename_append_uuid: true
