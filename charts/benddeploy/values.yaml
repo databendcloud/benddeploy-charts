@@ -21,7 +21,7 @@ postgres:
 
 envs:
   BDEPLOY_IMAGE_REGISTRY: ''
-  BDEPLOY_PROM_ENDPOINT: 'thanos-query.monitoring.svc.cluster.local:9090'
+  BDEPLOY_PROM_ENDPOINT: 'http:prometheus-k8s.monitoring.svc.cluster.local:9090'
   BDEPLOY_LOG_COLLECTOR_ENDPOINT: "http://warehouse-log-collector.logging.svc.cluster.local:4318"
   BDEPLOY_GRAFANA_ENDPOINT: "http://grafana.monitoring.svc.cluster.local:80"
 
