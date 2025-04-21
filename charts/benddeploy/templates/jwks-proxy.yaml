@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jwks-proxy
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jwks-reader
+rules:
+- nonResourceURLs: 
+  - "/openid/v1/jwks"
+  - "/openid/*"
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jwks-proxy-binding
+subjects:
+- kind: ServiceAccount
+  name: jwks-proxy
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: jwks-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jwks-proxy
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jwks-proxy
+  template:
+    metadata:
+      labels:
+        app: jwks-proxy
+    spec:
+      serviceAccountName: jwks-proxy
+      containers:
+      - name: proxy
+        image: python:3-alpine
+        command:
+        - /bin/sh
+        - -c
+        - |
+          CACERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          mkdir -p /tmp/data/openid/v1
+          echo "Fetching JWKS data..."
+          apk add --no-cache curl
+          curl -s --cacert $CACERT -H "Authorization: Bearer $TOKEN" https://kubernetes.default.svc.cluster.local/openid/v1/jwks > /tmp/data/openid/v1/jwks
+          
+          # 启动简单的HTTP服务器，监听所有接口
+          cd /tmp/data
+          echo "Starting HTTP server on port 8080..."
+          python -m http.server 8080 --bind 0.0.0.0
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jwks-http
+  namespace: kube-system
+spec:
+  selector:
+    app: jwks-proxy
+  ports:
+  - port: 80
+    targetPort: 8080
