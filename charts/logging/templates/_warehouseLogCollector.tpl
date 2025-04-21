@@ -68,7 +68,7 @@ sinks:
     region: {{ .Values.warehouseLogCollector.s3.region }}
 
     batch:
-      max_bytes: {{ .Values.warehouseLogCollector.s3.batch.maxBytes }}
+      max_bytes: 5242880
       timeout_secs: {{ .Values.warehouseLogCollector.s3.batch.timeoutSecs }}
 
     filename_time_format: "%Y%m%d-%H%M%S"
@@ -92,7 +92,7 @@ sinks:
     region: {{ .Values.warehouseLogCollector.s3.region }}
 
     batch:
-      max_bytes: {{ .Values.warehouseLogCollector.s3.batch.maxBytes }}
+      max_bytes: 5242880
       timeout_secs: {{ .Values.warehouseLogCollector.s3.batch.timeoutSecs }}
 
     filename_time_format: "%Y%m%d-%H%M%S"

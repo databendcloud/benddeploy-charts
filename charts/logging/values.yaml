@@ -74,7 +74,6 @@ warehouseLogCollector:
       accessKeyId: "access_key_id"
       secretAccessKey: "secret_key"
     batch:
-      maxBytes: 1048576
       timeoutSecs: 60    # 1min
   image:
     repository: timberio/vector
