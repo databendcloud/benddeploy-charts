@@ -8,7 +8,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: jwks-reader
-  namespace: {{ .Release.Namespace }}
 rules:
 - nonResourceURLs: 
   - "/openid/v1/jwks"
@@ -19,7 +18,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: jwks-proxy-binding
-  namespace: {{ .Release.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: jwks-proxy
