@@ -33,5 +33,5 @@ data:
         "admin"
       ],
       "jwtKeyFile": "http://benddeploy-service.benddeploy.svc.cluster.local:8080/.well-known/jwks.json",
-      "oidcProvider": "http://jwks-http.kube-system.svc.cluster.local/openid/v1/jwks"
+      "oidcProvider": "http://jwks-http.benddeploy.svc.cluster.local/openid/v1/jwks"
     }
