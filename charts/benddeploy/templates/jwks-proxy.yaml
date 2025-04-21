@@ -21,6 +21,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: jwks-proxy
+  namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
   name: jwks-reader
