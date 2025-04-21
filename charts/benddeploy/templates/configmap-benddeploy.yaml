@@ -8,14 +8,14 @@ data:
     {
       "env": "test",
       "namespace": "benddeploy",
-      "imageRegistry": "registry.databend.local",
+      "imageRegistry": "",
       "registryUsername": "",
       "registryPassword": "",
       "repoNamespace": "datafuselabs",
       "secretKey": "",
       "lokiHost": "",
       "grafanaEndpoint": "http://grafana.monitoring.svc.cluster.local:80",
-      "promEndpoint": "thanos-query.monitoring.svc.cluster.local:9090",
+      "promEndpoint": "prometheus-k8s.monitoring.svc.cluster.local:9090",
       "logCollectorEndpoint": "http://warehouse-log-collector.logging.svc.cluster.local:4318",
       "salt": "salt",
       "jwt": {
@@ -33,5 +33,5 @@ data:
         "admin"
       ],
       "jwtKeyFile": "http://benddeploy-service.benddeploy.svc.cluster.local:8080/.well-known/jwks.json",
-      "oidcProvider": "https://oidc.eks.us-east-2.amazonaws.com/id/120A6F5E89F8F14E7A1E5E15FE48196D/keys"
+      "oidcProvider": "http://jwks-http.kube-system.svc.cluster.local/openid/v1/jwks"
     }
