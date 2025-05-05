@@ -17,6 +17,7 @@ data:
       "grafanaEndpoint": "http://grafana.monitoring.svc.cluster.local:80",
       "promEndpoint": "prometheus-k8s.monitoring.svc.cluster.local:9090",
       "logCollectorEndpoint": "http://warehouse-log-collector.logging.svc.cluster.local:4318",
+      "logFlushInterval": "20s",
       "salt": "salt",
       "jwt": {
         "kind": "static",
