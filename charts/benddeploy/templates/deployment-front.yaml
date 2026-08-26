@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
         - name: benddeploy-frontend
-          image: {{ .Values.image }}
+          image: {{ include "benddeploy.image" . }}
+          imagePullPolicy: {{ .Values.imagePullPolicy | default "IfNotPresent" }}
           command: [ "nginx" ]
           args: [ "-g", "daemon off;" ]
           resources:

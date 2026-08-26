@@ -50,19 +50,53 @@ spec:
         - /bin/sh
         - -c
         - |
-          CACERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+          # set -e: a failed fetch must abort instead of starting the HTTP
+          # server with an empty JWKS.
+          # The old form was `curl ... > file`. Shell redirection creates the
+          # file before the command runs, so whenever apk/curl were unavailable
+          # it left a 0-byte file that looked like a successful fetch. Warehouses
+          # then loaded an empty key set and rejected every JWT with 401.
+          set -e
           mkdir -p /tmp/data/openid/v1
           echo "Fetching JWKS data..."
-          apk add --no-cache curl
-          curl -s --cacert $CACERT -H "Authorization: Bearer $TOKEN" https://kubernetes.default.svc.cluster.local/openid/v1/jwks > /tmp/data/openid/v1/jwks
-          
-          # 启动简单的HTTP服务器，监听所有接口
+          # The image already ships python, and urllib can verify the API server
+          # certificate straight from the ServiceAccount ca.crt. No apk add
+          # needed, and no need to disable certificate verification.
+          python - <<'PYEOF'
+          import urllib.request, ssl
+
+          token = open("/var/run/secrets/kubernetes.io/serviceaccount/token").read()
+          ctx = ssl.create_default_context(
+              cafile="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+          req = urllib.request.Request(
+              "https://kubernetes.default.svc.cluster.local/openid/v1/jwks",
+              headers={"Authorization": "Bearer " + token})
+          data = urllib.request.urlopen(req, context=ctx).read()
+
+          # Reject an empty or malformed response instead of degrading silently.
+          assert b'"keys"' in data and len(data) > 50, "unexpected JWKS content"
+
+          # Write only after validation, so a failure leaves no partial file.
+          with open("/tmp/data/openid/v1/jwks", "wb") as f:
+              f.write(data)
+          print("JWKS fetched: %d bytes" % len(data))
+          PYEOF
           cd /tmp/data
           echo "Starting HTTP server on port 8080..."
           python -m http.server 8080 --bind 0.0.0.0
         ports:
         - containerPort: 8080
+        readinessProbe:
+          # Probe the actual content, not just the port: an empty JWKS keeps the
+          # pod out of Ready, so the failure surfaces at deploy time instead of
+          # being pushed downstream into the query path.
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - test -s /tmp/data/openid/v1/jwks && grep -q '"keys"' /tmp/data/openid/v1/jwks
+          initialDelaySeconds: 5
+          periodSeconds: 10
 ---
 apiVersion: v1
 kind: Service
