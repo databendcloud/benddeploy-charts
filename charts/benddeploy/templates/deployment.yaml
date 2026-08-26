@@ -17,7 +17,11 @@ spec:
       serviceAccountName: benddeploy
       containers:
         - name: app
-          image: {{ .Values.image }}
+          image: {{ include "benddeploy.image" . }}
+          # Default to IfNotPresent so a `k3d image import`-ed tag is actually used.
+          # Kubernetes silently defaults to Always for `:latest`, which makes the
+          # imported image unreachable and fails with ErrImagePull on local-only tags.
+          imagePullPolicy: {{ .Values.imagePullPolicy | default "IfNotPresent" }}
           command: ['/app/main']
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

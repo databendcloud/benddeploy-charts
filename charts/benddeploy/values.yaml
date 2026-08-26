@@ -2,6 +2,35 @@ image:
   repository: public.ecr.aws/databendlabs/benddeploy:latest
   tag: ""
 
+# Pull policy for the benddeploy backend/frontend containers.
+# IfNotPresent lets a locally built or `k3d image import`-ed tag be used;
+# Kubernetes would otherwise default to Always for `:latest` and fail to pull.
+imagePullPolicy: IfNotPresent
+
+# Registry that benddeploy pulls databend-query / databend-meta from.
+# Empty means Docker Hub (datafuselabs/*).
+repoNamespace: datafuselabs
+
+# Default admin credentials, consumed by the backend on first start to
+# initialize the admin account. passwordHash is md5(plaintext), unsalted.
+#
+# Defaults to databend / databend so a plain `helm install` is loginable.
+# The previous hardcoded hash had no known plaintext, which made sign-in
+# impossible without rewriting the accounts row by hand.
+#
+# Override for anything that is not a throwaway cluster:
+#   --set-string jwtSecret.passwordHash=$(printf '%s' '<password>' | md5sum | cut -d' ' -f1)
+jwtSecret:
+  user: databend
+  # md5("databend")
+  passwordHash: "3af57862780586e0cf637ca89f99bfd0"
+
+# BendDeploy license, base64(base64(license-json)).
+# Empty on purpose -- see templates/license-secret.yaml for why.
+# Request one from hi@databend.com, then:
+#   --set-string license="$(tr -d '\n' < benddeploy-license.b64)"
+license: ""
+
 frontImage:
   repository: public.ecr.aws/databendlabs/benddeploy:latest
   tag: ""
